@@ -18,7 +18,6 @@ import java.util.Map.Entry;
 @SuppressWarnings("serial")
 public class CollabrativewhiteboardServlet extends HttpServlet {
 
-
 	@SuppressWarnings("rawtypes")
 	private ConcurrentMap<String, Queue> userIDEventsMap = new ConcurrentHashMap<String, Queue>();
 
@@ -29,7 +28,6 @@ public class CollabrativewhiteboardServlet extends HttpServlet {
 
 		if(req == null)
 			return;
-
 
 		String userID = req.getParameter("userID");
 
