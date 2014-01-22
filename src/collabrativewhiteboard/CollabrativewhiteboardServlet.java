@@ -16,13 +16,33 @@ import com.google.appengine.labs.repackaged.org.json.JSONException;
 import com.google.appengine.labs.repackaged.org.json.JSONObject;
 import java.util.Map.Entry;
 @SuppressWarnings("serial")
+/**
+ * This is the server class for collabrative white board app. It maintains a map with userID as key and event queue as 
+ * value. It receives the paint strokes encapsulated into JSON objects and pushes them to the event queue of all the users
+ * connected to the drawing. On receiving a http get request from an app (userID) it checks if there are any events (touch strokes)
+ * in the queue for this user and adds them to the http response as json objects. This is response is then parsed at the app end
+ * to draw the strokes on the view.
+ * 
+ *  NOTE: Right now this supports only a single drawing i.e all users connect to the same drawing.
+ * 
+ * @author vineetak
+ *
+ */
 public class CollabrativewhiteboardServlet extends HttpServlet {
 
 	@SuppressWarnings("rawtypes")
+	/**
+	 * This map contains the event queues of all the users connected to the app currenlty.
+	 */
 	private ConcurrentMap<String, Queue> userIDEventsMap = new ConcurrentHashMap<String, Queue>();
 
 
 	HttpServletResponse response = null;
+
+	/**
+	 * This method wraps all the paint strokes in the event queue for the user into a JSONObject
+	 * and sends it in the http response. 
+	 */
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 
@@ -34,7 +54,7 @@ public class CollabrativewhiteboardServlet extends HttpServlet {
 		if(userID == null){
 			return;
 		}
-		
+
 		System.out.println("Getting response for user " + userID);
 		if(userIDEventsMap == null)
 			return;
@@ -47,7 +67,7 @@ public class CollabrativewhiteboardServlet extends HttpServlet {
 			userIDEventsMap.put(userID,new ConcurrentLinkedQueue<String>());	
 			return;
 		}
-		
+
 		// get all the events in the queue for this user 
 		if (userIDEventQueue.size() >= 1)
 		{
@@ -62,13 +82,18 @@ public class CollabrativewhiteboardServlet extends HttpServlet {
 			}
 			sb.append( userIDEventQueue.remove() + "]}");
 			resp.getWriter().println(sb.toString());
-			
+
 		}
 
 	}
 
-
-	// Method to handle POST method request.
+	/**
+	 *  This method receives the paint strokes wrapped as JSONObjects from the apps. A single stroke received from an app
+	 *  is added to the event queue of all the users currenlty  using the app. This is required since all the users
+	 *  send their get requests at different times. Also, it is necessary to maintain that all users draw all the paint strokes
+	 *  in the same order to maintain the consistency.
+	 *  
+	 */
 	public void doPost(HttpServletRequest request,
 			HttpServletResponse response)
 					throws ServletException, IOException {
@@ -89,8 +114,6 @@ public class CollabrativewhiteboardServlet extends HttpServlet {
 		} finally {
 			reader.close();
 		}
-
-
 		try {
 			String str = sb.toString();
 			if(str.isEmpty())
@@ -105,7 +128,7 @@ public class CollabrativewhiteboardServlet extends HttpServlet {
 			if(userIDEventsMap.get(userID) == null)
 				userIDEventsMap.put(userID,new ConcurrentLinkedQueue<String>());
 
-			// insert this string in all the queues of the map
+			// insert this string in event queues of all the users
 			for(Entry<String, Queue> entry : userIDEventsMap.entrySet()) {
 
 				System.out.println("Key " + entry.getKey() );
@@ -117,17 +140,12 @@ public class CollabrativewhiteboardServlet extends HttpServlet {
 				}
 				q.add(sb.toString());
 
-		}
+			}
 
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
-
 		response.getWriter().println(sb.toString());
-
-
-
-
-	}}
+	}
+}
